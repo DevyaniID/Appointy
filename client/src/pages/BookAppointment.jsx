@@ -15,7 +15,7 @@ function BookAppointment() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/services");
+        const res = await axios.get("https://appointy-1.onrender.com/api/services");
         setServices(res.data);
       } catch (err) {
         console.error(err);
@@ -30,7 +30,7 @@ function BookAppointment() {
       if (!selectedService) return;
       try {
         const res = await axios.get(
-          `http://localhost:5000/api/providers?service=${selectedService}&search=${search}`
+          `https://appointy-1.onrender.com/api/providers?service=${selectedService}&search=${search}`
         );
         setProviders(res.data);
       } catch (err) {

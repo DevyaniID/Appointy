@@ -48,7 +48,7 @@ const RegisterProvider = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:5000/api/register-provider", formData);
+      const res = await axios.post("https://appointy-1.onrender.com/api/register-provider", formData);
       if (res.data.success) {
         setSuccess("Registration successful! Redirecting to login...");
         setTimeout(() => navigate("/login"), 2000);

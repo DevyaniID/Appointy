@@ -39,7 +39,7 @@ export default function Login() {
       // 2. Local मध्ये नसेल तर backend API call करा (providers साठी)
       console.log("🔍 Checking backend for user:", email);
       
-      const response = await axios.post('http://localhost:5000/api/login', {
+      const response = await axios.post('https://appointy-1.onrender.com/api/login', {
         email,
         password
       });
