@@ -26,7 +26,7 @@ const RegisterProvider = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/services");
+            const res = await axios.get(`${API_BASE_URL}/api/services`);
         setServices(res.data);
       } catch (err) {
         console.error("Failed to fetch services:", err);
