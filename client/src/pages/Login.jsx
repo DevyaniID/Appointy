@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import API_BASE_URL from "../config";
+
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -39,7 +41,7 @@ export default function Login() {
       // 2. Local मध्ये नसेल तर backend API call करा (providers साठी)
       console.log("🔍 Checking backend for user:", email);
       
-      const response = await axios.post('https://appointy-1.onrender.com/api/login', {
+      const response = await axios.post('${API_BASE_URL}/api/login', {
         email,
         password
       });

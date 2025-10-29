@@ -1,51 +1,3 @@
-// import express from "express";
-// import mysql from "mysql2";
-// import bcrypt from "bcrypt";
-// import cors from "cors";
-
-// const app = express();
-// app.use(express.json());
-// app.use(cors());
-
-// // DB connection
-// const db = mysql.createConnection({
-//   host: "localhost",
-//   user: "root",
-//   password: "manasi@0928",
-//   database: "vbapp",
-// });
-
-// // Register route
-// app.post("/api/register", async (req, res) => {
-//   const { name, email, password, role } = req.body;
-
-//   if (!name || !email || !password || !role) {
-//     return res.status(400).json({ success: false, message: "All fields are required" });
-//   }
-
-//   try {
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     db.query(
-//       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-//       [name, email, hashedPassword, role],
-//       (err, result) => {
-//         if (err) {
-//           if (err.code === "ER_DUP_ENTRY") {
-//             return res.status(400).json({ success: false, message: "Email already exists" });
-//           }
-//           return res.status(500).json({ success: false, message: "DB error" });
-//         }
-//         res.json({ success: true, message: "User registered successfully" });
-//       }
-//     );
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: "Server error" });
-//   }
-// });
-
-// app.listen(5000, () => console.log("Server running on http://localhost:5000"));
-
 import express from "express";
 import mysql from "mysql2";
 import bcrypt from "bcrypt";
@@ -53,9 +5,18 @@ import cors from "cors";
 
 const app = express();
 app.use(express.json());
-app.use(cors());
 
-// DB connection
+// ✅ Fix CORS properly
+app.use(cors({
+  origin: [
+    "http://localhost:3000",                 // for local frontend
+    "https://https://appointy-pi.vercel.app"       // replace with your deployed frontend URL
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
+// ✅ Database connection
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -63,13 +24,12 @@ const db = mysql.createConnection({
   database: "vbapp",
 });
 
-// Check database connection
 db.connect((err) => {
   if (err) {
-    console.error('Database connection failed: ' + err.stack);
+    console.error("Database connection failed: " + err.stack);
     return;
   }
-  console.log('Connected to database as id ' + db.threadId);
+  console.log("✅ Connected to database as id " + db.threadId);
 });
 
 // ----------------- USER REGISTRATION -----------------
@@ -91,7 +51,7 @@ app.post("/api/register", async (req, res) => {
           if (err.code === "ER_DUP_ENTRY") {
             return res.status(400).json({ success: false, message: "Email already exists" });
           }
-          return res.status(500).json({ success: false, message: "DB error" });
+          return res.status(500).json({ success: false, message: "Database error" });
         }
         res.json({ success: true, message: "User registered successfully" });
       }
@@ -209,9 +169,8 @@ app.post("/api/login", (req, res) => {
         return res.status(400).json({ success: false, message: "Incorrect password" });
       }
 
-      // Get provider details if user is a provider
       let providerDetails = null;
-      if (user.role === 'provider') {
+      if (user.role === "provider") {
         const providerResult = await new Promise((resolve) => {
           db.query("SELECT * FROM providers WHERE user_id = ?", [user.id], (err, results) => {
             if (err) resolve(null);
@@ -244,7 +203,7 @@ app.post("/api/appointments", (req, res) => {
 
   db.query(
     "INSERT INTO appointments (user_id, provider_id, service_type, appointment_date, appointment_time, duration_minutes, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [user_id, provider_id, service_type, appointment_date, appointment_time, duration_minutes || 60, notes || ''],
+    [user_id, provider_id, service_type, appointment_date, appointment_time, duration_minutes || 60, notes || ""],
     (err, result) => {
       if (err) {
         return res.status(500).json({ success: false, message: "DB error creating appointment" });
@@ -283,4 +242,6 @@ app.get("/api/appointments/user/:userId", (req, res) => {
   });
 });
 
-app.listen(5000, () => console.log("Server running on http://localhost:5000"));
+// ✅ Use environment port for deployment
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
