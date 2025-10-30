@@ -6,17 +6,19 @@ import cors from "cors";
 const app = express();
 app.use(express.json());
 
-// ✅ Fix CORS properly
-app.use(cors({
-  origin: [
-    "http://localhost:3000",                 // for local frontend
-    "https://https://appointy-pi.vercel.app"       // replace with your deployed frontend URL
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}));
+// ✅ Proper CORS setup for both local & deployed frontend
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // Local React app
+      "https://appointy-pi.vercel.app" // ✅ Deployed frontend (corrected URL)
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 
-// ✅ Database connection
+// ✅ MySQL Database connection
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -26,13 +28,13 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
   if (err) {
-    console.error("Database connection failed: " + err.stack);
+    console.error("❌ Database connection failed:", err.stack);
     return;
   }
-  console.log("✅ Connected to database as id " + db.threadId);
+  console.log("✅ Connected to MySQL Database as ID:", db.threadId);
 });
 
-// ----------------- USER REGISTRATION -----------------
+// ------------------ USER REGISTRATION ------------------
 app.post("/api/register", async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -61,7 +63,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ----------------- PROVIDER REGISTRATION -----------------
+// ------------------ PROVIDER REGISTRATION ------------------
 app.post("/api/register-provider", async (req, res) => {
   const { name, email, password, service_type, designation, location } = req.body;
 
@@ -72,6 +74,7 @@ app.post("/api/register-provider", async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Insert into users table
     db.query(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
       [name, email, hashedPassword, "provider"],
@@ -85,6 +88,7 @@ app.post("/api/register-provider", async (req, res) => {
 
         const userId = result.insertId;
 
+        // Insert into providers table
         db.query(
           "INSERT INTO providers (user_id, service_type, designation, location) VALUES (?, ?, ?, ?)",
           [userId, service_type, designation || null, location],
@@ -102,20 +106,23 @@ app.post("/api/register-provider", async (req, res) => {
   }
 });
 
-// ----------------- GET SERVICES -----------------
+// ------------------ GET SERVICES (Dropdown Data) ------------------
 app.get("/api/services", (req, res) => {
-  db.query("SELECT * FROM services", (err, rows) => {
+  db.query("SELECT id, name FROM services", (err, rows) => {
     if (err) {
-      return res.status(500).json({ success: false, message: "DB error fetching services" });
+      console.error("❌ DB error fetching services:", err);
+      return res.status(500).json({ success: false, message: "Database error fetching services" });
     }
-    res.json(rows);
+
+    // ✅ Ensure consistent response for frontend
+    res.json({ success: true, services: rows });
   });
 });
 
-// ----------------- GET PROVIDERS BY SERVICE TYPE -----------------
+// ------------------ GET PROVIDERS BY SERVICE TYPE ------------------
 app.get("/api/providers/:serviceType", (req, res) => {
   const { serviceType } = req.params;
-  
+
   const query = `
     SELECT 
       u.name, 
@@ -138,13 +145,14 @@ app.get("/api/providers/:serviceType", (req, res) => {
 
   db.query(query, [serviceType], (err, results) => {
     if (err) {
-      return res.status(500).json({ success: false, message: "DB error fetching providers" });
+      console.error("❌ DB error fetching providers:", err);
+      return res.status(500).json({ success: false, message: "Database error fetching providers" });
     }
-    res.json(results);
+    res.json({ success: true, providers: results });
   });
 });
 
-// ----------------- LOGIN -----------------
+// ------------------ LOGIN ------------------
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -181,11 +189,11 @@ app.post("/api/login", (req, res) => {
       }
 
       const { password: pwd, ...userInfo } = user;
-      res.json({ 
-        success: true, 
-        message: "Login successful", 
+      res.json({
+        success: true,
+        message: "Login successful",
         user: userInfo,
-        provider: providerDetails
+        provider: providerDetails,
       });
     } catch (error) {
       res.status(500).json({ success: false, message: "Server error" });
@@ -193,7 +201,7 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-// ----------------- CREATE APPOINTMENT -----------------
+// ------------------ CREATE APPOINTMENT ------------------
 app.post("/api/appointments", (req, res) => {
   const { user_id, provider_id, service_type, appointment_date, appointment_time, duration_minutes, notes } = req.body;
 
@@ -206,14 +214,15 @@ app.post("/api/appointments", (req, res) => {
     [user_id, provider_id, service_type, appointment_date, appointment_time, duration_minutes || 60, notes || ""],
     (err, result) => {
       if (err) {
-        return res.status(500).json({ success: false, message: "DB error creating appointment" });
+        console.error("❌ DB error creating appointment:", err);
+        return res.status(500).json({ success: false, message: "Database error creating appointment" });
       }
       res.json({ success: true, message: "Appointment created successfully", appointmentId: result.insertId });
     }
   );
 });
 
-// ----------------- GET USER APPOINTMENTS -----------------
+// ------------------ GET USER APPOINTMENTS ------------------
 app.get("/api/appointments/user/:userId", (req, res) => {
   const { userId } = req.params;
 
@@ -236,12 +245,13 @@ app.get("/api/appointments/user/:userId", (req, res) => {
 
   db.query(query, [userId], (err, results) => {
     if (err) {
-      return res.status(500).json({ success: false, message: "DB error fetching appointments" });
+      console.error("❌ DB error fetching appointments:", err);
+      return res.status(500).json({ success: false, message: "Database error fetching appointments" });
     }
-    res.json(results);
+    res.json({ success: true, appointments: results });
   });
 });
 
-// ✅ Use environment port for deployment
+// ✅ Server listener (for Render or Localhost)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
